@@ -68,8 +68,7 @@ class _YoloRealTimeViewExampleState extends State<YoloRealTimeViewExample> {
       androidModelPath: 'assets/models/yolov5s_320.pt',
       iOSModelPath: 'yolov5s',
       fullClassList: fullClassList,
-      // activeClassList: activeList,
-      activeClassList: fullClassList,
+      activeClassList: activeList,
       confThreshold: 0.5,
     );
 
