@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
+import 'package:yolo_realtime_plugin/yolo_realtime_plugin.dart';
 
 /// An implementation of [YoloRealtimePlatform] that uses method channels.
 class MethodChannelYoloRealtime extends YoloRealtimePlatformInterface {

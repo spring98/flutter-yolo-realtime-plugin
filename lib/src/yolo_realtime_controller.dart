@@ -1,4 +1,6 @@
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
+// ignore_for_file: constant_identifier_names
+
+import 'package:yolo_realtime_plugin/yolo_realtime_plugin.dart';
 import 'dart:io';
 
 enum YoloVersion {

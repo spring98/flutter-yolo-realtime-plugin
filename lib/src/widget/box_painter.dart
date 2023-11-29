@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
+import 'package:yolo_realtime_plugin/yolo_realtime_plugin.dart';
 
 class YoloBoxPainter extends CustomPainter {
   final List<BoxModel> boxes;
@@ -43,7 +43,7 @@ class YoloBoxPainter extends CustomPainter {
       canvas.rotate(pi / 2);
 
       // Draw the text
-      textPainter.paint(canvas, Offset(0, 0));
+      textPainter.paint(canvas, const Offset(0, 0));
 
       // Restore the canvas state
       canvas.restore();

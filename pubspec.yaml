@@ -1,7 +1,7 @@
 name: yolo_realtime_plugin
-description: A new Flutter plugin project.
-version: 0.0.1
-homepage:
+description: This is a plugin that supports yolo realtime.
+version: 1.0.0
+homepage: https://github.com/spring98/flutter-yolo-realtime-plugin
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

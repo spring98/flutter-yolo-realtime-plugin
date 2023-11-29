@@ -1,5 +1,5 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
+import 'package:yolo_realtime_plugin/yolo_realtime_plugin.dart';
 
 abstract class YoloRealtimePlatformInterface extends PlatformInterface {
   /// Constructs a YoloRealtimePluginPlatform.

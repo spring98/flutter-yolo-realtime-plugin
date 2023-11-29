@@ -8,7 +8,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

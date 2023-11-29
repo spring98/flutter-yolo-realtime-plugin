@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
+import 'package:yolo_realtime_plugin/yolo_realtime_plugin.dart';
 import 'package:yolo_realtime_plugin/src/widget/box_painter.dart';
 
 class YoloRealTimeView extends StatefulWidget {
@@ -60,7 +60,7 @@ class _YoloRealTimeViewState extends State<YoloRealTimeView> {
 
         if (mounted) {
           setState(() {
-            event.forEach((box) {
+            for (var box in event) {
               final double x = box.rect.left;
               final double y = box.rect.top;
               final double width = box.rect.width;
@@ -84,7 +84,7 @@ class _YoloRealTimeViewState extends State<YoloRealTimeView> {
                   image: box.image,
                 ),
               );
-            });
+            }
 
             // 감지된 이미지 전송
             if (widget.captureImage != null) {
@@ -103,7 +103,7 @@ class _YoloRealTimeViewState extends State<YoloRealTimeView> {
         }
       });
     } catch (e) {
-      print(e);
+      //
     }
   }
 

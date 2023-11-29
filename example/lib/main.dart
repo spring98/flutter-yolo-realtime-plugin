@@ -1,6 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
-import 'package:yolo_realtime_plugin/yolo_realtime.dart';
+import 'package:yolo_realtime_plugin/yolo_realtime_plugin.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
