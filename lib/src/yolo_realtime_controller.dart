@@ -13,46 +13,64 @@ enum ModelInputSize {
 }
 
 class YoloRealtimeController {
+  /// Android, iOS Common
   final YoloVersion version;
-  final ModelInputSize modelInputSize;
+  final List<String> fullClasses;
+  final List<String> activeClasses;
+
+  /// Android Only
   final String? androidModelPath;
+  final int androidModelWidth;
+  final int androidModelHeight;
+  final double androidConfThreshold;
+  final double androidIouThreshold;
+
+  /// iOS Only
   final String? iOSModelPath;
-  final double confThreshold;
-  final double iouThreshold;
-  final List<String> fullClassList;
-  final List<String> activeClassList;
+  final double iOSConfThreshold;
 
   YoloRealtimeController({
-    required this.fullClassList,
-    required this.activeClassList,
+    required this.fullClasses,
+    required this.activeClasses,
+    required this.androidModelWidth,
+    required this.androidModelHeight,
     this.androidModelPath,
     this.iOSModelPath,
     this.version = YoloVersion.v5,
-    this.modelInputSize = ModelInputSize.SIZE_320,
-    this.confThreshold = 0.5,
-    this.iouThreshold = 0.5,
+    this.androidConfThreshold = 0.5,
+    this.iOSConfThreshold = 0.5,
+    this.androidIouThreshold = 0.5,
   });
 
   Future<void> initialize() async {
     String? model;
+    double? confThreshold;
+
     if (Platform.isAndroid) {
       model = androidModelPath;
+      confThreshold = androidConfThreshold;
     } else if (Platform.isIOS) {
       model = iOSModelPath;
+      confThreshold = iOSConfThreshold;
     }
 
     if (model == null) {
       throw AssertionError('You must enter the model path.');
     }
 
+    if (confThreshold == null) {
+      throw AssertionError('You must enter the confidence.');
+    }
+
     final Map<String, dynamic> args = {
       'modelPath': model,
-      'fullClassList': fullClassList,
-      'activeClassList': activeClassList,
+      'fullClasses': fullClasses,
+      'activeClasses': activeClasses,
       'version': version.toString(),
-      'modelInputSize': modelInputSize.toString(),
+      'modelWidth': androidModelWidth,
+      'modelHeight': androidModelHeight,
       'confThreshold': confThreshold,
-      'iouThreshold': iouThreshold,
+      'iouThreshold': androidIouThreshold,
     };
 
     YoloRealtimePlatformInterface.instance.initializeController(args);

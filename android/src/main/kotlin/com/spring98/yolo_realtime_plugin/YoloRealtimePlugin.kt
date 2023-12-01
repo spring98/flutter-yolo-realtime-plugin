@@ -3,7 +3,6 @@
 package com.spring98.yolo_realtime_plugin
 
 import android.Manifest
-import android.R.attr.bitmap
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
@@ -23,8 +22,8 @@ import com.spring98.yolo_realtime_plugin.Constants.Companion.DETECTION_SIZE
 import com.spring98.yolo_realtime_plugin.Constants.Companion.FULL_CLASS_LABELS
 import com.spring98.yolo_realtime_plugin.Constants.Companion.IOU_THRESHOLD
 import com.spring98.yolo_realtime_plugin.Constants.Companion.MODEL
-import com.spring98.yolo_realtime_plugin.Constants.Companion.MODEL_INPUT_SIZE
-import com.spring98.yolo_realtime_plugin.Constants.Companion.PADDING_SIZE
+import com.spring98.yolo_realtime_plugin.Constants.Companion.MODEL_HEIGHT
+import com.spring98.yolo_realtime_plugin.Constants.Companion.MODEL_WIDTH
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -63,34 +62,23 @@ class YoloRealtimePlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "initializeController" -> {
         val arguments = call.arguments as? Map<*, *> ?: return
         val modelPath = arguments["modelPath"] as? String
-        val fullClassList = arguments["fullClassList"] as? List<*>
-        val activeClassList = arguments["activeClassList"] as? List<*>
-        val version = arguments["version"] as? String
-        val modelInputSize = arguments["modelInputSize"] as? String
+        val fullClasses = arguments["fullClasses"] as? List<*>
+        val activeClasses = arguments["activeClasses"] as? List<*>
+
+        val modelWidth = arguments["modelWidth"] as? Int
+        val modelHeight = arguments["modelHeight"] as? Int
         val confThreshold = arguments["confThreshold"] as? Double
         val iouThreshold = arguments["iouThreshold"] as? Double
 
 //          Log.d("[SPRING]", "Yolo controller initialized: $modelPath, $fullClassList, $activeClassList, $version, $modelInputSize, $confThreshold, $iouThreshold")
 
-        when (modelInputSize) {
-          // input size 가 320 일 때
-          "ModelInputSize.SIZE_320" -> {
-            PADDING_SIZE = 40
-            MODEL_INPUT_SIZE = 320
-          }
-
-          // input size 가 640 일 때
-          "ModelInputSize.SIZE_640" -> {
-            PADDING_SIZE = 80
-            MODEL_INPUT_SIZE = 640
-          }
-        }
-
-        DETECTION_SIZE = fullClassList?.size?.plus(5) ?: 0
+        DETECTION_SIZE = fullClasses?.size?.plus(5) ?: 0
+        MODEL_WIDTH = modelWidth ?: 0
+        MODEL_HEIGHT = modelHeight ?: 0
         CONFIDENCE_THRESHOLD = confThreshold ?: 0.0
         IOU_THRESHOLD = iouThreshold ?: 0.0
-        FULL_CLASS_LABELS = fullClassList?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
-        ACTIVE_CLASS_LABELS = activeClassList?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+        FULL_CLASS_LABELS = fullClasses?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
+        ACTIVE_CLASS_LABELS = activeClasses?.filterIsInstance<String>()?.toMutableList() ?: mutableListOf()
 
         val assetKey = binding.flutterAssets.getAssetFilePathByName(modelPath ?: "")
         MODEL = PyTorchAndroid.loadModuleFromAsset(binding.applicationContext.assets, assetKey)
@@ -250,21 +238,11 @@ class CameraView(
       // 이미지를 Bitmap 으로 변환
       val bitmap_origin = image.toBitmap()
 
-      // 640 * 480
-      val bitmap640_480 =
-        Bitmap.createBitmap(bitmap_origin, 0, 0, bitmap_origin.width, bitmap_origin.height, Matrix(), true)
-
-      // 320 * 240 or 640 * 480
-      val resize320_240 =
-        Bitmap.createScaledBitmap(bitmap640_480, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE - 2*PADDING_SIZE, true)
-
-      // 320 * 320 or 640 * 640
-      val zeroPadding320_320 =
-        resize320_240.addPadding(Color.BLACK, 0, PADDING_SIZE, 0, PADDING_SIZE)
+      val(resizedBitmap, padding_width, padding_height)  = cameraSizeToModelSize(bitmap_origin, MODEL_WIDTH, MODEL_HEIGHT)
 
       // Bitmap To Tensor
       val inputTensor = TensorImageUtils.bitmapToFloat32Tensor(
-        zeroPadding320_320,
+        resizedBitmap,
 
         // NO_MEAN_RGB
         floatArrayOf(0.0f, 0.0f, 0.0f),
@@ -277,7 +255,7 @@ class CameraView(
       val outputTensor = MODEL!!.forward(IValue.from(inputTensor)).toTuple()[0].toTensor().dataAsFloatArray
 
       // 결과 처리 (예: 객체 위치, 신뢰도 등)
-      val detectionResults = processOutput(outputTensor)
+      val detectionResults = processOutput(outputTensor, padding_width, padding_height)
 
       val nmsDetectionResults = nms(detectionResults, IOU_THRESHOLD)
 
@@ -318,54 +296,61 @@ class CameraView(
       thread.start()
     }
 
-    private fun Bitmap.addPadding(
-      color: Int = Color.BLACK,
-      left: Int = 0,
-      top: Int = 0,
-      right: Int = 0,
-      bottom: Int = 0
-    ): Bitmap {
-      val bitmap = Bitmap.createBitmap(
-        width + left + right, // width in pixels
-        height + top + bottom, // height in pixels
-        Bitmap.Config.ARGB_8888
+    fun cameraSizeToModelSize(
+      originalBitmap: Bitmap,
+      targetWidth: Int,
+      targetHeight: Int
+    ): Triple<Bitmap, Float, Float>  {
+      // 이미지 비율 계산
+      val aspectRatio = originalBitmap.width.toFloat() / originalBitmap.height
+      val targetAspectRatio = targetWidth.toFloat() / targetHeight
+
+      // 비율에 따라 조절할 새 크기 결정
+      val newWidth: Int
+      val newHeight: Int
+      if (aspectRatio > targetAspectRatio) {
+        // 가로가 더 넓다면, 가로를 맞추고 세로를 조절
+        newWidth = targetWidth
+        newHeight = (targetWidth / aspectRatio).toInt()
+      } else {
+        // 세로가 더 길다면, 세로를 맞추고 가로를 조절
+        newHeight = targetHeight
+        newWidth = (targetHeight * aspectRatio).toInt()
+      }
+
+      // 이미지 크기 조절
+      val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
+
+      // 필요한 경우 패딩 추가
+      val paddedBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+      val canvas = Canvas(paddedBitmap)
+      canvas.drawColor(Color.BLACK)
+      canvas.drawBitmap(
+        resizedBitmap,
+        ((targetWidth - newWidth) / 2f),
+        ((targetHeight - newHeight) / 2f),
+        null
       )
-      val canvas = Canvas(bitmap)
-      canvas.drawColor(color)
-      Paint().apply {
-        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-        canvas.drawRect(
-          Rect(left, top, bitmap.width - right, bitmap.height - bottom),
-          this
-        )
-      }
-      Paint().apply {
-        canvas.drawBitmap(
-          this@addPadding, // bitmap
-          0f + left, // left
-          0f + top, // top
-          this // paint
-        )
-      }
-      return bitmap
+
+      return Triple(paddedBitmap, ((targetWidth - newWidth) / 2f), ((targetHeight - newHeight) / 2f))
     }
 
-    private fun processOutput(tensor: FloatArray): List<DetectionResult> {
+    private fun processOutput(tensor: FloatArray, padding_width: Float, padding_height: Float): List<DetectionResult> {
       val results = mutableListOf<DetectionResult>()
 
       // tensor.size = 535500 / 85 = 6300
       for (i in tensor.indices step DETECTION_SIZE) {
         val confidence = tensor[i + 4]
         if (confidence > CONFIDENCE_THRESHOLD) {
-          val x: Float = tensor[i]
-          val y: Float = convertRange(tensor[i + 1])
-          val w: Float = tensor[i + 2]
-          val h: Float = tensor[i + 3] * (MODEL_INPUT_SIZE + 2*PADDING_SIZE).toFloat()/(MODEL_INPUT_SIZE - 2*PADDING_SIZE)
+          val x: Float = convertRange(tensor[i], MODEL_WIDTH, padding_width)
+          val y: Float = convertRange(tensor[i + 1], MODEL_HEIGHT, padding_height)
+          val w: Float = tensor[i + 2] * (MODEL_WIDTH + 2*padding_width)/(MODEL_WIDTH - 2*padding_width)
+          val h: Float = tensor[i + 3] * (MODEL_HEIGHT + 2*padding_height)/(MODEL_HEIGHT - 2*padding_height)
 
-          val left = (x - w / 2) / MODEL_INPUT_SIZE
-          val top = ((MODEL_INPUT_SIZE - y - h / 2) / MODEL_INPUT_SIZE)
-          val width = w / MODEL_INPUT_SIZE
-          val height = (h / MODEL_INPUT_SIZE)
+          val left = (x - w / 2) / MODEL_WIDTH
+          val top = ((MODEL_HEIGHT - y - h / 2) / MODEL_HEIGHT)
+          val width = w / MODEL_WIDTH
+          val height = (h / MODEL_HEIGHT)
 
           var maxClassScore = tensor[i + 5]
           var cls = 0
@@ -377,22 +362,18 @@ class CameraView(
           }
 
           val rect = RectLTWH(left, top, width, height)
-
-          // ACTIVE_CLASS_LABELS에 label이 포함되어 있으면 label을 리턴
-          if (getClassLabel(cls) in ACTIVE_CLASS_LABELS) {
-            results.add(DetectionResult(rect, getClassLabel(cls), confidence))
-          }
+          results.add(DetectionResult(rect, getClassLabel(cls), confidence))
         }
       }
 
       return results
     }
 
-    fun convertRange(originalValue: Float): Float {
-      val originalMin = PADDING_SIZE.toFloat()
-      val originalMax = MODEL_INPUT_SIZE.toFloat() - PADDING_SIZE.toFloat()
-      val newMin = - PADDING_SIZE.toFloat()
-      val newMax = MODEL_INPUT_SIZE.toFloat() + PADDING_SIZE.toFloat()
+    fun convertRange(originalValue: Float, model_size: Int, padding_size: Float): Float {
+      val originalMin = padding_size
+      val originalMax = model_size - padding_size
+      val newMin = - padding_size
+      val newMax = model_size + padding_size
 
       return ((originalValue - originalMin) / (originalMax - originalMin)) * (newMax - newMin) + newMin
     }
@@ -476,11 +457,11 @@ class Constants {
     // 신뢰도 임계값
     var IOU_THRESHOLD:Double = 0.5
 
-    // 모델 입력 크기 640 or 320
-    var MODEL_INPUT_SIZE:Int = 320
+    // 모델 입력 크기
+    var MODEL_WIDTH: Int = 320
 
-    // 모델 크기에 맞출 패딩 크기 80 or 40
-    var PADDING_SIZE:Int = 40
+    // 모델 입력 크기
+    var MODEL_HEIGHT: Int = 320
 
     // 내가 사용한 모델의 전체 클래스 리스트
     var FULL_CLASS_LABELS: MutableList<String> = mutableListOf()

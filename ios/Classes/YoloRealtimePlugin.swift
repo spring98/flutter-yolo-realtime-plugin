@@ -23,7 +23,7 @@ public class YoloRealtimePlugin: NSObject, FlutterPlugin {
         case "initializeController":
             guard let arguments = call.arguments as? [String: Any],
                   let modelPath = arguments["modelPath"] as? String,
-                  let activeClassList = arguments["activeClassList"] as? [String],
+                  let activeClassList = arguments["activeClasses"] as? [String],
                   let confThreshold = arguments["confThreshold"] as? Double else { return }
                    
             guard let modelURL = Bundle.main.url(forResource: modelPath, withExtension: "mlmodelc"),

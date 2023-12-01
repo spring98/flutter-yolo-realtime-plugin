@@ -67,9 +67,12 @@ class _YoloRealTimeViewExampleState extends State<YoloRealTimeViewExample> {
     yoloController = YoloRealtimeController(
       androidModelPath: 'assets/models/yolov5s_320.pt',
       iOSModelPath: 'yolov5s',
-      fullClassList: fullClassList,
-      activeClassList: activeList,
-      confThreshold: 0.5,
+      androidModelWidth: 320,
+      androidModelHeight: 320,
+      fullClasses: fullClasses,
+      activeClasses: activeClasses,
+      androidConfThreshold: 0.5,
+      iOSConfThreshold: 0.5,
     );
 
     try {
@@ -114,7 +117,7 @@ class _YoloRealTimeViewExampleState extends State<YoloRealTimeViewExample> {
   //   return file;
   // }
 
-  List<String> activeList = [
+  List<String> activeClasses = [
     "car",
     "person",
     "tv",
@@ -126,7 +129,7 @@ class _YoloRealTimeViewExampleState extends State<YoloRealTimeViewExample> {
     "cell phone",
   ];
 
-  List<String> fullClassList = [
+  List<String> fullClasses = [
     "person",
     "bicycle",
     "car",
