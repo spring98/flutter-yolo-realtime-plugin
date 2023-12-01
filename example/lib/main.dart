@@ -65,20 +65,26 @@ class _YoloRealTimeViewExampleState extends State<YoloRealTimeViewExample> {
 
   Future<void> yoloInit() async {
     yoloController = YoloRealtimeController(
-      androidModelPath: 'assets/models/yolov5s_320.pt',
-      iOSModelPath: 'yolov5s',
-      androidModelWidth: 320,
-      androidModelHeight: 320,
+      // common
       fullClasses: fullClasses,
       activeClasses: activeClasses,
+
+      // android
+      androidModelPath: 'assets/models/yolov5s_320.pt',
+      androidModelWidth: 320,
+      androidModelHeight: 320,
       androidConfThreshold: 0.5,
+      androidIouThreshold: 0.5,
+
+      // ios
+      iOSModelPath: 'yolov5s',
       iOSConfThreshold: 0.5,
     );
 
     try {
       await yoloController?.initialize();
     } catch (e) {
-      print(e);
+      print('ERROR: $e');
     }
   }
 
