@@ -1036,6 +1036,6 @@ class _YoloRealTimeViewExampleState extends State<YoloRealTimeViewExample> {
 
 ## Issue
 
-You can read the FAQ here: [https://github.com/spring98/flutter-yolo-realtime-plugin/issues](https://github.com/spring98/flutter-yolo-realtime-plugin/issues)
+You can read the issue here: [https://github.com/spring98/flutter-yolo-realtime-plugin/issues](https://github.com/spring98/flutter-yolo-realtime-plugin/issues)
 
 
